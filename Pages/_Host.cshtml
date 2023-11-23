@@ -1,0 +1,59 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.Components.Web
+@namespace SportsRaffles.Pages
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="~/" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-4bw+/aepP/YC94hEpVNVgiZdgIC5+VKNBQNGCHeKRQN+PtmoHDEXuppvnDJzQIu9" crossorigin="anonymous">
+    <link href="css/site.css" rel="stylesheet" />
+    <link href="SportsRaffles.styles.css" rel="stylesheet" />
+    <link rel="icon" type="image/png" href="~/images/logo.png"/>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700&display=swap" rel="stylesheet">
+    <component type="typeof(HeadOutlet)" render-mode="ServerPrerendered" />
+</head>
+<body>
+    <component type="typeof(App)" render-mode="ServerPrerendered" />
+    l
+    <div id="blazor-error-ui">
+        <environment include="Staging,Production">
+            An error has occurred. This application may no longer respond until reloaded.
+        </environment>
+        <environment include="Development">
+            An unhandled exception has occurred. See browser dev tools for details.
+        </environment>
+        <a href="" class="reload">Reload</a>
+        <a class="dismiss">🗙</a>
+    </div>
+
+    <script src="_framework/blazor.server.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.1/dist/js/bootstrap.bundle.min.js" integrity="sha384-HwwvtgBNo3bZJJLYd8oVXjrBZt8cqVSpeBNS5n7C8IVInixGAoxmnlMuBnhbgrkm" crossorigin="anonymous"></script>
+    <script>
+        window.openModal = (modal) => {
+            const myModal = new bootstrap.Modal('#' + modal, {
+                keyboard: false
+            });
+            myModal.show();
+        };
+
+        const numberInput = document.getElementById('ticketSelector');
+        const updateButton = document.getElementById('addToCartBtn');
+
+        // Add an event listener to the input field
+        numberInput.addEventListener('input', function (ticketCost) {
+            // Get the current value of the input field
+            const value = numberInput.value * ticketCost;
+
+            // Update the button text with the new value
+            updateButton.textContent = `Add to cart | ${value}`;
+        });
+    </script>
+</body>
+</html>

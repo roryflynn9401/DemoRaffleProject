@@ -1,0 +1,129 @@
+﻿@page "/admin/competitions"
+@using Microsoft.AspNetCore.Identity;
+@using Microsoft.AspNetCore.SignalR.Client;
+@using SportsRaffles.Data.Models;
+@using SportsRaffles.Services;
+@attribute [Authorize(Roles = "Admin")]
+@inject AuthenticationStateProvider authProvider
+@inject SignInManager<User> _signInManager
+@inject UserManager<User> userManager
+@inject NavigationManager navigationManager
+@inject CompetitionService competitionService
+@inject IJSRuntime jsRuntime
+
+<div class="table-responsive competition-table-container">
+    <table class="table competition-table">
+        <thead>
+            <tr>
+                <th scope="col">Id</th>
+                <th scope="col">Name</th>
+                <th scope="col">Tickets sold</th>
+                <th scope="col">Max tickets</th>
+                <th scope="col">Min tickets</th>
+                <th scope="col">Start date</th>
+                <th scope="col">End date</th>
+                <th scope="col">
+                    <a class="pointer" @onclick="NavigateToCreate">
+                        <i class="bi bi-plus-circle-fill"></i>
+                    </a>
+                </th>
+                <th scope="col">
+                    <a class="pointer" @onclick="RefreshCompetitionList">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </a>
+                </th>
+            </tr>
+        </thead>
+        <tbody class="table-group-divider">
+            @foreach(var competition in competitions)
+            {
+                <tr>
+                    <td>@competition.Id</td>
+                    <td>@competition.Name</td>
+                    <td>@competition.Tickets.Count</td>
+                    <td>@competition.MaxTickets</td>
+                    <td>@competition.MinTickets</td>
+                    <td>@competition.StartDate.ToString("dd/MM/yy HH:mm")</td>
+                    <td>@competition.EndDate.ToString("dd/MM/yy HH:mm")</td>
+                    <td>
+                        <a class="pointer" @onclick="(e) => NavigateToEdit(e, competition.Id)">
+                            <i class="bi bi-pencil-fill text-success"></i>
+                        </a>
+                    </td>
+                    <td>
+                        <a class="pointer" @onclick="(e) => DeleteCompetitionModal(e, competition.Id)">
+                            <i class="bi bi-trash-fill text-danger"></i>
+                        </a>
+                    </td>
+                </tr>
+
+            }
+        </tbody>
+    </table>
+</div>
+
+@code{
+
+    private List<Competition> competitions = new List<Competition>();
+
+    private void NavigateToCreate(MouseEventArgs e)
+    {
+        navigationManager.NavigateTo("/admin/competitions/create");
+    }
+
+    private void NavigateToEdit(MouseEventArgs e, Guid id)
+    {
+        navigationManager.NavigateTo($"/admin/competitions/edit/{id}");
+    }
+
+
+    private async Task RefreshCompetitionList(MouseEventArgs e)
+    {
+        competitions = await competitionService.GetCompetitionsAsync();
+        StateHasChanged();     
+    }
+
+    private async Task DeleteCompetition(MouseEventArgs e, Guid id)
+    {
+
+        await competitionService.DeleteCompetition(id);
+        StateHasChanged();
+        
+    }
+    private async Task DeleteCompetitionModal(MouseEventArgs e, Guid id)
+    {
+        deleteButton =@<button type="button" class="btn btn-danger" @onclick="(e) => DeleteCompetition(e, id)" data-bs-dismiss="modal">Delete</button>;
+
+        StateHasChanged();
+        await jsRuntime.InvokeVoidAsync("openModal", "deleteModal");
+    }
+    private RenderFragment? deleteButton;
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (competitions.Count == 0)
+        {
+            competitions = await competitionService.GetCompetitionsAsync();
+        }    
+    }
+}
+
+
+<div class="modal fade" tabindex="-1" id="deleteModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Are you sure you want to delete?</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>This will delete this competition forever</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                @deleteButton
+            </div>
+        </div>
+    </div>
+</div>

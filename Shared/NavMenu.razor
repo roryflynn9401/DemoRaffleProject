@@ -1,0 +1,78 @@
+﻿@using Microsoft.AspNetCore.Identity;
+@using SportsRaffles.Data.Models;
+@inject NavigationManager navManager
+@inject SignInManager<User> signinManager
+@inject AuthenticationStateProvider authProvider
+
+<nav class="navbar navbar-expand-lg bg-body-tertiary">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="#"><img src="./images/logo.png" style="width: 40px; height: 40px;" referrerpolicy="no-referrer" /></a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item mx-3">
+                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                        <span class="oi oi-home" aria-hidden="true"></span>Home
+                    </NavLink>
+                </li>
+                <li class="nav-item mx-3">
+                    <NavLink class="nav-link" href="counter">
+                        <span class="oi oi-dollar" aria-hidden="true"></span>Raffles
+                    </NavLink>
+                </li>
+                <li class="nav-item mx-3">
+                    <NavLink class="nav-link" href="faq">
+                        <span class="oi oi-question-mark" aria-hidden="true"></span>FAQ
+                    </NavLink>
+                </li>
+                <li class="nav-item mx-3">
+                    <NavLink class="nav-link" href="fetchdata">
+                        <span class="oi oi-check" aria-hidden="true"></span> Winners
+                    </NavLink>
+                </li>
+                <AuthorizeView Roles="Admin">
+                    <Authorized>
+                        <li class="nav-item mx-3">
+                            <NavLink class="nav-link" href="admin/competitions">
+                                <span class="oi oi-cog" aria-hidden="true"></span>Admin
+                            </NavLink>
+                        </li>
+                    </Authorized>
+                </AuthorizeView>
+            </ul>
+            <AuthorizeView>
+                <Authorized>
+                    <form class="d-flex" action="Logout" asp-route-returnUrl="@navManager.Uri" method="post">
+                        <button type="submit" class="nav-link">
+                            <span class="oi oi-account-logout" aria-hidden="true"></span>Logout
+                        </button>
+                    </form>
+                </Authorized>
+                <NotAuthorized>
+                    <form class="d-flex" action="login/Google" asp-route-returnUrl="@navManager.Uri" method="post">
+                        <button type="submit" class="nav-button">
+                            <span class="oi oi-account-login" aria-hidden="true" style="text-align: start;"></span>Login
+                        </button>
+                    </form>
+                </NotAuthorized>
+            </AuthorizeView>
+
+        </div>
+    </div>
+</nav>
+
+@code {
+
+    private async Task Logout()
+    {
+        var authState = await authProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            await signinManager.SignOutAsync();
+            StateHasChanged();
+        }
+    }
+}

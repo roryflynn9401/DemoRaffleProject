@@ -1,0 +1,81 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.Identity;
+@using Microsoft.AspNetCore.SignalR.Client;
+@using SportsRaffles.Data.Models;
+@using SportsRaffles.Services;
+@using SportsRaffles.ViewModels;
+@inject AuthenticationStateProvider authProvider
+@inject SignInManager<User> _signInManager
+@inject NavigationManager navigationManager
+@inject CompetitionService competitionService
+
+<PageTitle>Home - HoleInOne</PageTitle>
+
+<Banner />
+
+@if (competitions is not null)
+{
+    <div class="competition-container">
+
+        <h3 class="my-3" style="align-self: center;">Current Competitions</h3>
+        @for(int i = 0; i < 2; i++)
+        {
+            <div class="row gx-5">
+                @{
+                    var compGroup = competitions.Skip(i * 4).Take(4);
+                }
+                @foreach (var comp in compGroup)
+                {
+                    var ticketsSold = competitionService.GetEntriesForCompetition(comp.Id.Value);
+                    var percentageSold = ticketsSold / comp.MaxTickets;
+
+                    <div class="col-sm-@($"{12 / compGroup.Count()}") competition-item">
+                        <div class="card" style="width: 100%;">
+                            <a href="competitions/view/@comp.Id" class="text-black" style="text-decoration: none;">
+                                @{ var prizeToShow = comp.Prizes.First();}
+
+                                <img src="@($"data:image/png;base64,{prizeToShow.ImageUrl}")" class="competition-image">
+
+                                <div class="mx-2" style="display: flex; justify-content: start;">
+                                    <span style="font-size: 20px;">£</span> <span class="mt-1 ms-1">@comp.CostPerTicket.ToString("0.00")</span>
+                                </div>
+
+                                <h6 class="px-2 mt-3">@prizeToShow.Name</h6>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <div style="display: flex; justify-content: start;">
+                                        <small class="px-2 text-black-50">Drawn @comp.EndDate.Value.ToString("dd MMM hh:mm") </small>
+                                    </div>
+                                    <div style="display: flex; justify-content: end;">
+                                        <small class="px-2 text-black-50"><i class="bi bi-ticket-detailed-fill"></i> @comp.MaxTickets</small>
+                                    </div>
+                                </div>
+                            
+
+                                <div class="progress mt-3" role="progressbar" aria-label="Warning example" aria-valuenow="75" aria-valuemin="0" aria-valuemax="100">
+                                    <div class="progress-bar bg-warning text-dark" style="width: @percentageSold%">@(100 - percentageSold)% Remaining</div>
+                                </div>
+                            </a>
+                        </div>
+                     </div>
+
+                }
+            </div>
+        }
+        
+    </div>
+}
+@code
+{
+    private List<CompetitionViewModel> competitions = new List<CompetitionViewModel>();
+
+    protected async override Task OnInitializedAsync()
+    {
+        if(competitions.Count == 0)
+        {
+            competitions = await competitionService.GetIndexCompetitions();
+        }
+
+    }
+
+
+}

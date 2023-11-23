@@ -1,0 +1,271 @@
+﻿@page "/admin/competitions/edit/{Id:guid}"
+@using Microsoft.AspNetCore.Identity;
+@using Microsoft.AspNetCore.SignalR.Client;
+@using SportsRaffles.Data.Models;
+@using System.ComponentModel.DataAnnotations;
+@using SportsRaffles.Services;
+@using SportsRaffles.ViewModels;
+@attribute [Authorize(Roles = "Admin")]
+@inject AuthenticationStateProvider authProvider
+@inject SignInManager<User> _signInManager
+@inject NavigationManager navigationManager
+@inject CompetitionService competitionService
+@inject IJSRuntime jsRuntime
+
+<style>
+    .prize-image {
+        max-width: 100px;
+        max-height: 100px;
+        border-radius: 20%;
+        height: 100%;
+        width: 100%;
+    }
+
+
+</style>
+
+<div class="flex-container y-flex crud-container">
+    <EditForm Model="competitionViewModel" OnSubmit="Edit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <h2>Competition</h2>
+        <div class="mb-3">
+            <label for="title" class="form-label">Title</label>
+            <InputText class="form-control" id="title" @bind-Value="competitionViewModel.Title" />
+        </div>
+        <div class="mb-3">
+            <label for="description" class="form-label">Description</label>
+            <InputTextArea class="form-control" id="description" rows="3" @bind-Value="competitionViewModel.Description" />
+        </div>
+        <div class="mb-3">
+            <label for="maxTickets" class="form-label">Maximum tickets</label>
+            <InputNumber class="form-control" id="maxTickets" @bind-Value="competitionViewModel.MaxTickets" />
+        </div>
+        <div class="mb-3">
+            <label for="minTickets" class="form-label">Minimum tickets</label>
+            <InputNumber class="form-control" id="minTickets" @bind-Value="competitionViewModel.MinTickets" />
+        </div>
+        <div class="mb-3">
+            <label for="maxTicketsPerUser" class="form-label">Maximum tickets per user</label>
+            <InputNumber class="form-control" id="maxTicketsPerUser" @bind-Value="competitionViewModel.MaxTicketsPerUser" />
+        </div>
+        <div class="mb-3">
+            <label for="ticketCost" class="form-label">Cost per ticket</label>
+            <InputNumber class="form-control" id="ticketCost" @bind-Value="competitionViewModel.CostPerTicket" />
+        </div>
+        <div class="mb-3">
+            <label for="startDate" class="form-label">Start date</label>
+            <InputDate Type="InputDateType.DateTimeLocal" class="form-control" id="startDate" @bind-Value="competitionViewModel.StartDate" />
+        </div>
+        <div class="mb-3">
+            <label for="endDate" class="form-label">End date</label>
+            <InputDate Type="InputDateType.DateTimeLocal" class="form-control" id="endDate" @bind-Value="competitionViewModel.EndDate" />
+        </div>
+
+        <br />
+        <h2>Prizes</h2>
+
+        <div class="mb-3">
+            <label for="prizeTitle" class="form-label">Prize title</label>
+            <InputText class="form-control" id="prizeTitle" @bind-Value="PrizeTitle" />
+        </div>
+        <div class="mb-3">
+            <label for="prizeDescription" class="form-label">Prize description</label>
+            <InputTextArea class="form-control" id="prizeDescription" rows="3" @bind-Value="PrizeDescription" />
+        </div>
+        <div class="mb-3">
+            <label for="prizeCost" class="form-label">Prize cost</label>
+            <InputNumber class="form-control" id="prizeCost" @bind-Value="PrizeCost" />
+        </div>
+        <div class="mb-3">
+            <label for="prizeImage" class="form-label">Prize image</label>
+            <InputFile @key="_inputFileId" OnChange="@HandleImageUpload" class="form-control" id="prizeImage" accept="image/*" />
+        </div>
+        <div class="btn-group mb-3 w-100" role="group">
+            <button type="button" class="btn btn-primary w-50" @onclick="AddPrize">Add prize</button>
+            <button type="button" class="btn btn-danger w-50" @onclick="ClearPrizes">Clear prize</button>
+        </div>
+
+        @if (Prizes.Any())
+        {
+            <div class="row mt-3">
+                <div class="list-group">
+                    <ul class="list-group">
+                        @foreach (var prize in Prizes)
+                        {
+                            <li href="#" class="list-group-item" aria-current="false">
+                                <div class="d-flex w-100 justify-content-between">
+                                    <h5 class="mb-1">@prize.Name</h5>
+                                    <small>@($"£{prize.Cost.ToString("F")}")</small>
+                                </div>
+                                <div class="d-flex w-100 justify-content-between">
+                                    <p class="mb-1">@prize.Description</p>
+                                    <div class="d-flex justify-content-end">
+                                        <a class="me-2" @onclick="e => UpdatePrizeModal(e, Prizes.IndexOf(prize))">
+                                            <i class="bi bi-pencil-fill text-success pointer"></i>
+                                        </a>
+                                        <a @onclick="e => DeletePrize(e, Prizes.IndexOf(prize))">
+                                            <i class="bi bi-trash-fill pointer"></i>
+                                        </a>
+                                    </div>
+                                </div>
+
+                                @if (!string.IsNullOrEmpty(prize.ImageUrl))
+                                {
+                                    <div class="d-flex w-100 justify-content-center">
+                                        <img class="prize-image" src="@($"data:image/png;base64,{prize.ImageUrl}")" alt="Uploaded Image" />
+                                    </div>
+                                }
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </div>
+        }
+        <button type="submit" class="btn btn-lg btn-success w-100 mt-3">Edit competition</button>
+    </EditForm>
+</div>
+@foreach (var prize in Prizes)
+{
+    @prizeEditModal(Prizes.IndexOf(prize))
+}
+
+@code {
+
+    #region Params
+
+    public CompetitionViewModel competitionViewModel { get; set; } = new();
+    [Parameter] public Guid Id { get; set; }
+
+    public string PrizeTitle { get; set; } = string.Empty;
+    public string PrizeDescription { get; set; } = string.Empty;
+    public float PrizeCost { get; set; }
+
+    private List<PrizeViewModel> Prizes { get; set; } = new List<PrizeViewModel>();
+    private PrizeViewModel EditModel { get; set; } = new();
+
+    private List<string> b64Images = new();
+    private string _inputFileId = Guid.NewGuid().ToString();
+
+    #endregion
+
+    protected override async Task OnInitializedAsync()
+    {
+        competitionViewModel = await competitionService.GetCompetitionViewModel(Id);
+        Prizes = competitionViewModel.Prizes;      
+    }
+
+    private async Task Edit(EditContext editContext)
+    {
+
+        if (editContext.Validate())
+        {
+            competitionViewModel.Prizes = Prizes;
+
+            await competitionService.EditCompetition(Id, competitionViewModel);
+            navigationManager.NavigateTo("admin/competitions");
+        }
+        
+
+    }
+
+    private void AddPrize()
+    {
+        var prize = new PrizeViewModel
+            {
+                Name = PrizeTitle,
+                Description = PrizeDescription,
+                Cost = PrizeCost,
+                ImageUrl = b64Images.Last() ?? string.Empty
+            };
+
+        Prizes.Add(prize);
+        ClearPrizes();
+    }
+
+    private void DeletePrize(MouseEventArgs args, int index)
+    {
+        Prizes.RemoveAt(index);
+        StateHasChanged();
+    }
+
+    private void ClearPrizes()
+    {
+        PrizeTitle = string.Empty;
+        PrizeDescription = string.Empty;
+        PrizeCost = 0;
+        _inputFileId = Guid.NewGuid().ToString();
+    }
+
+    private async Task HandleImageUpload(InputFileChangeEventArgs e)
+    {
+        var imageFile = e.File;
+
+        if (imageFile != null)
+        {
+            try
+            {
+                using (var stream = imageFile.OpenReadStream())
+                {
+                    using (var memoryStream = new MemoryStream())
+                    {
+                        await stream.CopyToAsync(memoryStream);
+                        b64Images.Add(Convert.ToBase64String(memoryStream.ToArray()));
+                    }
+                }
+
+
+            }
+            catch (Exception ex)
+            {
+
+            }
+        }
+    }
+
+    private async Task UpdatePrizeModal(MouseEventArgs e, int prizeId)
+    {
+        EditModel = Prizes[prizeId];
+        StateHasChanged();
+        await jsRuntime.InvokeVoidAsync("openModal", $"editPrizeModal{prizeId}");
+    }
+
+    private async Task UpdatePrize(MouseEventArgs e, int prizeId)
+    {
+        Prizes[prizeId] = EditModel;
+    }
+
+    private RenderFragment prizeEditModal(int prizeId) =>
+    @<div class="modal fade" tabindex="-1" id="editPrizeModal@(prizeId)">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Prize</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="prizeTitle" class="form-label">Prize title</label>
+                        <InputText class="form-control" @bind-Value="EditModel.Name" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="prizeDescription" class="form-label">Prize description</label>
+                        <InputTextArea class="form-control" rows="3" @bind-Value="EditModel.Description" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="prizeCost" class="form-label">Prize cost</label>
+                        <InputNumber class="form-control" @bind-Value="EditModel.Cost" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="prizeImage" class="form-label">Prize image</label>
+                        <InputFile OnChange="@HandleImageUpload" class="form-control" accept="image/*" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-success" @onclick="e => UpdatePrize(e, prizeId)" data-bs-dismiss="modal">Save changes</button>
+                </div>
+            </div>
+        </div>
+    </div>;
+}

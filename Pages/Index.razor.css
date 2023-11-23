@@ -1,0 +1,25 @@
+﻿.competition-container{
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 65%;
+    margin: 0 auto;
+}
+
+
+.competition-item {
+    display: flex;
+    align-items: start;
+    max-width: 300px;
+    width: 300px;
+    margin: 10px auto;
+    padding: 1px;
+}
+
+.competition-image{
+    width: 100%;
+    height: 60%;
+    object-fit: fill;
+    border-top-right-radius: 5px;
+    border-top-left-radius: 5px;
+}

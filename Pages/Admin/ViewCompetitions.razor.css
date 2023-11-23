@@ -1,0 +1,8 @@
+﻿.competition-table {
+    max-width: 70vw;
+}
+
+.competition-table-container {
+    display: flex;
+    justify-content: center;
+}
